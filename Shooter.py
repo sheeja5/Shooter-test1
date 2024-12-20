@@ -21,7 +21,7 @@ with col1:
     st.write(f"**Ammo Left:** {st.session_state.ammo}")
     if st.session_state.ammo == 0:
         st.warning("Out of ammo! Reload to continue.")
-        if st.button("Reload"):
+        if st.button("Reload", key="reload_button"):
             st.session_state.ammo = 10
 
 with col2:
@@ -41,9 +41,9 @@ with col2:
 
 # User input
 st.write("### Shoot Target")
-x = st.number_input("Enter x-coordinate (0-500):", min_value=0, max_value=500, value=0)
-y = st.number_input("Enter y-coordinate (0-500):", min_value=0, max_value=500, value=0)
-if st.button("Shoot"):
+x = st.number_input("Enter x-coordinate (0-500):", min_value=0, max_value=500, value=0, key="x_input")
+y = st.number_input("Enter y-coordinate (0-500):", min_value=0, max_value=500, value=0, key="y_input")
+if st.button("Shoot", key="shoot_button"):
     if st.session_state.ammo > 0:
         st.session_state.ammo -= 1
         if abs(x - target_x) <= 25 and abs(y - target_y) <= 25:
