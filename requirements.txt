@@ -1,2 +1,2 @@
 streamlit == 1.41.1
-pygame == 2.6.1
+chess == 1.11.1
