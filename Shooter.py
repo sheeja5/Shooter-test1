@@ -1,56 +1,151 @@
-import streamlit as st
+# File: streamlit_shooting_game.py
+
+import pygame
 import random
+import sys
+import threading
+import streamlit as st
 
-# Game settings
-st.set_page_config(page_title="Shooting Game", layout="wide")
-st.title("🎯 Shooting Game")
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
-# Initialize session state
-if "target_position" not in st.session_state:
-    st.session_state.target_position = [random.randint(50, 450), random.randint(50, 450)]
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "ammo" not in st.session_state:
-    st.session_state.ammo = 10
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
 
-# Display the game area
-col1, col2 = st.columns([1, 3])
-with col1:
-    st.write("### Game Stats")
-    st.write(f"**Score:** {st.session_state.score}")
-    st.write(f"**Ammo Left:** {st.session_state.ammo}")
-    if st.session_state.ammo == 0:
-        st.warning("Out of ammo! Reload to continue.")
-        if st.button("Reload", key="reload_button"):
-            st.session_state.ammo = 10
+# Initialize pygame
+pygame.init()
+pygame.font.init()
 
-with col2:
-    st.write("### Game Area")
-    target_x, target_y = st.session_state.target_position
-    canvas = st.empty()
+# Load assets
+player_image = pygame.image.load("spaceship.png")
+enemy_image = pygame.image.load("enemy.png")
+bullet_image = pygame.image.load("bullet.png")
 
-    # Display target
-    target_html = f"""
-    <div style='position: absolute; top: {target_y}px; left: {target_x}px; 
-    width: 50px; height: 50px; background-color: red; border-radius: 50%;'></div>
-    """
-    canvas.markdown(
-        f"<div style='position: relative; width: 500px; height: 500px; background-color: lightblue;'>{target_html}</div>",
-        unsafe_allow_html=True,
-    )
+# Scale images
+player_image = pygame.transform.scale(player_image, (50, 50))
+enemy_image = pygame.transform.scale(enemy_image, (50, 50))
+bullet_image = pygame.transform.scale(bullet_image, (10, 30))
 
-# User input
-st.write("### Shoot Target")
-x = st.number_input("Enter x-coordinate (0-500):", min_value=0, max_value=500, value=0, key="x_input")
-y = st.number_input("Enter y-coordinate (0-500):", min_value=0, max_value=500, value=0, key="y_input")
-if st.button("Shoot", key="shoot_button"):
-    if st.session_state.ammo > 0:
-        st.session_state.ammo -= 1
-        if abs(x - target_x) <= 25 and abs(y - target_y) <= 25:
-            st.success("Hit! 🎯")
-            st.session_state.score += 1
-            st.session_state.target_position = [random.randint(50, 450), random.randint(50, 450)]
-        else:
-            st.error("Missed!")
-    else:
-        st.warning("No ammo left! Reload to shoot again.")
+# Game variables
+player_x = SCREEN_WIDTH // 2
+player_y = SCREEN_HEIGHT - 70
+player_speed = 5
+
+bullets = []
+enemies = []
+enemy_speed = 2
+spawn_rate = 30  # Higher is slower spawn rate
+
+score = 0
+running = False
+
+
+def draw_text(screen, text, x, y, font, color=WHITE):
+    """Draws text on the screen."""
+    label = font.render(text, True, color)
+    screen.blit(label, (x, y))
+
+
+def game_loop():
+    """Runs the game loop in a separate thread."""
+    global running, player_x, bullets, enemies, score
+
+    # Initialize screen
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Shooting Game")
+    clock = pygame.time.Clock()
+    font = pygame.font.Font(None, 36)
+
+    running = True
+    frame_count = 0
+
+    while running:
+        screen.fill(BLACK)
+
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        # Player controls
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < SCREEN_WIDTH - 50:
+            player_x += player_speed
+        if keys[pygame.K_SPACE]:
+            if len(bullets) < 5:  # Limit bullets
+                bullets.append([player_x + 20, player_y])
+
+        # Update bullets
+        for bullet in bullets:
+            bullet[1] -= 10  # Move bullet up
+            if bullet[1] < 0:
+                bullets.remove(bullet)
+
+        # Spawn enemies
+        frame_count += 1
+        if frame_count % spawn_rate == 0:
+            enemy_x = random.randint(0, SCREEN_WIDTH - 50)
+            enemies.append([enemy_x, 0])
+
+        # Update enemies
+        for enemy in enemies:
+            enemy[1] += enemy_speed
+            if enemy[1] > SCREEN_HEIGHT:
+                running = False  # Game over if enemy reaches bottom
+
+        # Check for collisions
+        for bullet in bullets:
+            for enemy in enemies:
+                if (
+                    bullet[0] < enemy[0] + 50
+                    and bullet[0] + 10 > enemy[0]
+                    and bullet[1] < enemy[1] + 50
+                    and bullet[1] + 30 > enemy[1]
+                ):
+                    bullets.remove(bullet)
+                    enemies.remove(enemy)
+                    score += 1
+                    break
+
+        # Draw player
+        screen.blit(player_image, (player_x, player_y))
+
+        # Draw bullets
+        for bullet in bullets:
+            screen.blit(bullet_image, (bullet[0], bullet[1]))
+
+        # Draw enemies
+        for enemy in enemies:
+            screen.blit(enemy_image, (enemy[0], enemy[1]))
+
+        # Draw score
+        draw_text(screen, f"Score: {score}", 10, 10, font)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.quit()
+
+
+# Streamlit interface
+st.title("Shooting Game")
+
+if "game_thread" not in st.session_state:
+    st.session_state.game_thread = None
+
+if st.button("Start Game"):
+    if not st.session_state.game_thread or not st.session_state.game_thread.is_alive():
+        st.session_state.game_thread = threading.Thread(target=game_loop)
+        st.session_state.game_thread.start()
+        st.success("Game started! Check the Pygame window.")
+
+if st.button("Stop Game"):
+    running = False
+    if st.session_state.game_thread and st.session_state.game_thread.is_alive():
+        st.session_state.game_thread.join()
+    st.warning("Game stopped.")
