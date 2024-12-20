@@ -2,13 +2,13 @@ import streamlit as st
 import random
 import time
 
-Initialize game variables
+#Initialize game variables
 score = 0
 lives = 5
 enemy_x = random.randint(0, 100)
 enemy_y = random.randint(0, 100)
 
-Function to update game state
+#Function to update game state
 def update_game_state(action):
     global score, lives, enemy_x, enemy_y
 
@@ -32,13 +32,13 @@ def update_game_state(action):
     elif action == "move_right":
         enemy_x += 10
 
-Streamlit app
+#Streamlit app
 st.title("Shooter Game")
 
-Game canvas
+#Game canvas
 game_canvas = st.empty()
 
-Game loop
+#Game loop
 while lives > 0:
     # Draw game state
     game_canvas.write(f"Score: {score}, Lives: {lives}")
@@ -53,6 +53,6 @@ while lives > 0:
     # Wait for 1 second
     time.sleep(1)
 
-Game over
+#Game over
 game_canvas.write("Game Over!")
 game_canvas.write(f"Final score: {score}") 
