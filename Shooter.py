@@ -1,7 +1,7 @@
 # File: streamlit_chess.py
 
 import streamlit as st
-from streamlit_chessboard import chessboard
+from streamlit.chessboard import chessboard
 import chess
 import chess.engine
 
